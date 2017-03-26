@@ -16,8 +16,8 @@ extra-source-files:  ChangeLog.md README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Doppler.CSS.Syntax,
-                       Doppler.CSS.Types
+  exposed-modules:     Doppler.Css.Syntax,
+                       Doppler.Css.Types
   -- other-modules:
   other-extensions:    TemplateHaskell,
                        QuasiQuotes
@@ -26,3 +26,15 @@ library
                        template-haskell >=2.11 && <2.12
   -- hs-source-dirs:
   default-language:    Haskell2010
+
+test-suite doppler-css-spec
+   type:                exitcode-stdio-1.0
+   main-is:             Spec.hs
+   ghc-options:         -Wall -fhpc
+   default-extensions:  QuasiQuotes
+   build-depends:       doppler-css,
+                        base >=4.9 && <4.10,
+                        template-haskell >=2.11 && <2.12,
+                        hspec >=2 && <3
+   hs-source-dirs:      test
+   default-language:    Haskell2010
