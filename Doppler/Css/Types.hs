@@ -8,11 +8,14 @@ import Language.Haskell.TH.Syntax
 type CssSelector = String
 type CssPropertyName = String
 type CssProperty = (CssPropertyName, [CssPropertyValue])
-type Css = [CssBlock]
 
-data CssBlock =
-   CssBlock CssSelector [CssProperty]
+data Css =
+     Block [CssSelector] [CssProperty]
    -- ^ CSS block that contains style properties.
+   | Import String
+   -- ^ CSS import.
+   | MediaBlock [CssSelector] [Css]
+   -- ^ CSS media block that contains other definitions.
    deriving (Show, Eq)
 
 data CssPropertyValue =
@@ -66,9 +69,15 @@ instance IsCssProperty a => IsCssProperty [a] where
    formatProperty = mconcat . map formatProperty
 
 
-instance Lift CssBlock where
-   lift (CssBlock selector properties) =
-      [| CssBlock selector properties |]
+instance Lift Css where
+   lift (Block selector properties) =
+      [| Block selector properties |]
+
+   lift (Import url) =
+      [| Import url |]
+
+   lift (MediaBlock selector blocks) =
+      [| MediaBlock selector blocks |]
 
 
 instance Show CssPropertyValue where

@@ -50,30 +50,88 @@ spec = do
             [("text-align", [InterpolationValue (lift "")])]
 
    describe "Blocks" $ do
-      it "parses empty blocks" $
+      it "parses empty block" $
          parseCssFromString "selector{}" `shouldBe`
-            [CssBlock "selector" []]
+            [Block ["selector"] []]
 
-      it "parses empty blocks with space" $
+      it "parses empty block with multiple selectors" $
+         parseCssFromString "selector1,selector2{}" `shouldBe`
+            [Block ["selector1", ",", "selector2"] []]
+
+      it "parses empty block with space" $
          parseCssFromString "selector { }" `shouldBe`
-            [CssBlock "selector" []]
+            [Block ["selector"] []]
+
+      it "parses empty block with space and multiple selectors" $
+         parseCssFromString "selector1, selector2 { }" `shouldBe`
+            [Block ["selector1", ",", "selector2"] []]
+
+      it "parses empty block with spaces between and multiple selectors" $
+         parseCssFromString "selector1 , selector2 { }" `shouldBe`
+            [Block ["selector1", ",", "selector2"] []]
+
+      it "parses class selectors" $
+         parseCssFromString "selector.class {}" `shouldBe`
+            [Block ["selector", ".", "class"] []]
+
+      it "parses child selectors" $
+         parseCssFromString "selector > children {}" `shouldBe`
+            [Block ["selector", ">", "children"] []]
+
+      it "parses selectors with children" $
+         parseCssFromString "selector children {}" `shouldBe`
+            [Block ["selector", " ", "children"] []]
 
       it "parses multiple empty blocks with spaces" $
          parseCssFromString "foo { } bar { }" `shouldBe`
-            [CssBlock "foo" [], CssBlock "bar" []]
+            [Block ["foo"] [], Block ["bar"] []]
 
       it "parses blocks with one property and semicolon" $
          parseCssFromString "selector { text-align: center; }" `shouldBe`
-            [CssBlock "selector" [("text-align", [Value "center"])]]
+            [Block ["selector"] [("text-align", [Value "center"])]]
 
       it "parses multiple blocks with one property" $
          parseCssFromString "foo { text-align: center; } bar { font-size: 12px; }" `shouldBe`
-            [CssBlock "foo" [("text-align", [Value "center"])], CssBlock "bar" [("font-size", [Value "12px"])]]
+            [Block ["foo"] [("text-align", [Value "center"])], Block ["bar"] [("font-size", [Value "12px"])]]
 
       it "parses blocks with multiple propertys" $
          parseCssFromString "selector { text-align: center; font-size: 12px; }" `shouldBe`
-            [CssBlock "selector" [("text-align", [Value "center"]), ("font-size", [Value "12px"])]]
+            [Block ["selector"] [("text-align", [Value "center"]), ("font-size", [Value "12px"])]]
 
       it "parses blocks with property interpolation" $
          parseCssFromString "selector { text-align: ${align}; }" `shouldBe`
-            [CssBlock "selector" [("text-align", [InterpolationValue (lift "")])]]
+            [Block ["selector"] [("text-align", [InterpolationValue (lift "")])]]
+
+   describe "Media blocks" $ do
+      it "parses empty blocks" $
+         parseCssFromString "@media print{}" `shouldBe`
+            [MediaBlock ["print"] []]
+
+      it "parses empty blocks with space" $
+         parseCssFromString "@media print { }" `shouldBe`
+            [MediaBlock ["print"] []]
+
+      it "parses media blocks containing other empty blocks" $
+         parseCssFromString "@media print { foo {} }" `shouldBe`
+            [MediaBlock ["print"] [Block ["foo"] []]]
+
+      it "parses media blocks inside and outside" $
+         parseCssFromString "foo {} @media print { foo {} bar {} } bar {}" `shouldBe`
+            [Block ["foo"] [], MediaBlock ["print"] [Block ["foo"] [], Block ["bar"] []], Block ["bar"] []]
+
+      it "parses media blocks containing a block with style properties" $
+         parseCssFromString "@media print { foo { text-align: center; } }" `shouldBe`
+            [MediaBlock ["print"] [Block ["foo"] [("text-align", [Value "center"])]]]
+
+      it "parses media blocks containing many blocks with style properties" $
+         parseCssFromString "@media print { foo { text-align: center; } bar { text-align: right; } }" `shouldBe`
+            [MediaBlock ["print"] [Block ["foo"] [("text-align", [Value "center"])], Block ["bar"] [("text-align", [Value "right"])]]]
+
+   describe "Imports" $ do
+      it "parses double quoted import" $
+         parseCssFromString "@import \"http://only.styles.org\";" `shouldBe`
+            [Import "http://only.styles.org"]
+
+      it "parses single quoted import" $
+         parseCssFromString "@import \"http://only.styles.org\";" `shouldBe`
+            [Import "http://only.styles.org"]

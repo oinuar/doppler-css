@@ -9,13 +9,11 @@ import Language.Haskell.TH.Syntax
 import Text.Parsec.String          (Parser)
 import Language.Haskell.TH.Quote   (QuasiQuoter (..))
 
--- Parser for CSS block.
+-- Parser for CSS definitions.
 parseCss :: Parser Css
-            -- ^ CSS block parser.
-parseCss = many $ do
-   selector <- many parseWhitespace *> parseSelector <* many parseWhitespace
-   properties <- between (char '{' <* many parseWhitespace) (many parseWhitespace *> char '}') (many parseCssProperty)
-   return $ CssBlock selector properties
+            -- ^ CSS parser.
+parseCss =
+   many parseWhitespace *> (try parseImport <|> parseMediaBlock <|> parseBlock)
 
 -- Parser for CSS property.
 parseCssProperty :: Parser CssProperty
@@ -30,10 +28,10 @@ parseCssProperty = do
 -- Parses CSS from string.
 parseCssFromString :: String ->
                       -- ^ String to parse.
-                      [CssBlock]
+                      [Css]
                       -- ^ Parsed CSS blocks.
 parseCssFromString source =
-   case parse parseCss source source of
+   case parse (many parseCss) source source of
       Right x -> x
       Left x -> error . show $ x
 
@@ -47,9 +45,40 @@ parseCssPropertiesFromString source =
       Right x -> x
       Left x -> error . show $ x
 
-parseSelector :: Parser CssSelector
-parseSelector =
-   many1 $ letter <|> digit <|> oneOf "-_"
+parseBlock :: Parser Css
+parseBlock = do
+   selector <- parseSelectors <* many parseWhitespace
+   properties <- between (char '{' <* many parseWhitespace) (many parseWhitespace *> char '}') (many parseCssProperty) <* many parseWhitespace
+   return $ Block selector properties
+
+parseImport :: Parser Css
+parseImport = do
+   _ <- string "@import" <* many1 parseWhitespace
+   url <- (    between (char '"') (char '"') (many1 $ noneOf "\"")
+           <|> between (char '\'') (char '\'') (many1 $ noneOf "'")
+           <|> many1 (noneOf ";")) <* many parseWhitespace
+   _ <- char ';' <* many parseWhitespace
+   return $ Import url
+
+parseMediaBlock :: Parser Css
+parseMediaBlock = do
+   _ <- string "@media" <* many1 parseWhitespace
+   selector <- parseSelectors <* many parseWhitespace
+   blocks <- between (char '{' <* many parseWhitespace) (many parseWhitespace *> char '}') (many parseBlock) <* many parseWhitespace
+   return $ MediaBlock selector blocks
+
+parseSelectors :: Parser [CssSelector]
+parseSelectors = do
+   lhs <- many1 (letter <|> digit <|> oneOf "-_#") <* many parseWhitespace
+   rhs <- optionMaybe parseSelectors
+   skipMany parseWhitespace
+   maybe (operator lhs <|> pure [lhs]) (return . (:) lhs . (:) " ") rhs
+   where
+      operator lhs = do
+         c <- oneOf ">.," <* many parseWhitespace
+         rhs <- parseSelectors
+         skipMany parseWhitespace
+         return $ lhs : pure c : rhs
 
 parsePropertyName :: Parser CssPropertyName
 parsePropertyName =
@@ -65,11 +94,11 @@ parsePropertyValue =
       value =
          Value <$> many1 (do
             x <- optionMaybe (lookAhead $ string "${")
-            maybe (noneOf "\n\r;}") unexpected x)
+            maybe (endOfLine <|> noneOf ";}") unexpected x)
 
 parseWhitespace :: Parser Char
 parseWhitespace =
-   oneOf "\t\n\r "
+   space <|> tab <|> endOfLine
 
 mkQExp :: String -> Q Exp
 mkQExp =
