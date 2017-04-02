@@ -72,7 +72,11 @@ spec = do
 
       it "parses class selectors" $
          parseCssFromString "selector.class {}" `shouldBe`
-            [Block ["selector", ".", "class"] []]
+            [Block ["selector.class"] []]
+
+      it "parses global class selectors" $
+         parseCssFromString ".class {}" `shouldBe`
+            [Block [".class"] []]
 
       it "parses child selectors" $
          parseCssFromString "selector > children {}" `shouldBe`

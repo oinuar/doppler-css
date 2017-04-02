@@ -69,13 +69,13 @@ parseMediaBlock = do
 
 parseSelectors :: Parser [CssSelector]
 parseSelectors = do
-   lhs <- many1 (letter <|> digit <|> oneOf "-_#") <* many parseWhitespace
+   lhs <- many1 (letter <|> digit <|> oneOf "-_#.") <* many parseWhitespace
    rhs <- optionMaybe parseSelectors
    skipMany parseWhitespace
    maybe (operator lhs <|> pure [lhs]) (return . (:) lhs . (:) " ") rhs
    where
       operator lhs = do
-         c <- oneOf ">.," <* many parseWhitespace
+         c <- oneOf ">," <* many parseWhitespace
          rhs <- parseSelectors
          skipMany parseWhitespace
          return $ lhs : pure c : rhs
