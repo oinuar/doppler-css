@@ -7,7 +7,7 @@ import Language.Haskell.TH.Syntax
 
 type CssSelector = String
 type CssPropertyName = String
-type CssProperty = (CssPropertyName, [CssPropertyValue])
+newtype CssProperty = CssProperty (CssPropertyName, [CssPropertyValue]) deriving (Show, Eq)
 
 data Css =
      Block [CssSelector] [CssProperty]
@@ -79,6 +79,9 @@ instance Lift Css where
    lift (MediaBlock selector blocks) =
       [| MediaBlock selector blocks |]
 
+instance Lift CssProperty where
+   lift (CssProperty (key, value)) =
+      [| CssProperty (key, value) |]
 
 instance Show CssPropertyValue where
    show (Value content) =
@@ -104,4 +107,4 @@ instance Lift CssPropertyValue where
 
    -- This is evaluated Haskell syntax that parser has not seen, need to format.
    lift (InterpolationValue expression) =
-      appE [| formatAttribute |] expression
+      appE [| formatProperty |] expression

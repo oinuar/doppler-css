@@ -1,5 +1,5 @@
 module Doppler.Css.Syntax (
-   parseCss, parseCssProperty, parseCssFromString, parseCssPropertiesFromString
+   parseCss, parseCssProperty, parseCssFromString, parseCssPropertiesFromString, css
 ) where
 
 import Doppler.Css.Types
@@ -23,7 +23,7 @@ parseCssProperty = do
    _ <- char ':' <* many parseWhitespace
    value <- many parsePropertyValue
    _ <- optional $ char ';' <* many parseWhitespace
-   return (name, value)
+   return $ CssProperty (name, value)
 
 -- Parses CSS from string.
 parseCssFromString :: String ->
@@ -99,6 +99,21 @@ parsePropertyValue =
 parseWhitespace :: Parser Char
 parseWhitespace =
    space <|> tab <|> endOfLine
+
+-- | Quasiquoter for CSS syntax.
+css :: QuasiQuoter
+css = QuasiQuoter {
+   quoteExp = compileExpression,
+   quotePat = undefined,
+   quoteType = undefined,
+   quoteDec = undefined
+}
+
+compileExpression :: String -> Q Exp
+compileExpression str =
+   case parse (many parseCss) str str of
+      Right x -> lift x
+      Left err -> fail $ show err
 
 mkQExp :: String -> Q Exp
 mkQExp =
