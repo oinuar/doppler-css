@@ -74,6 +74,14 @@ spec = do
          parseCssFromString "selector.class {}" `shouldBe`
             [Block ["selector.class"] []]
 
+      it "parses pseudo hover selectors" $
+         parseCssFromString "selector:hover {}" `shouldBe`
+            [Block ["selector:hover"] []]
+
+      it "parses pseudo nth-child(1) selector" $
+         parseCssFromString "selector:nth-child(1) {}" `shouldBe`
+            [Block ["selector:nth-child(1)"] []]
+
       it "parses global class selectors" $
          parseCssFromString ".class {}" `shouldBe`
             [Block [".class"] []]
@@ -109,27 +117,52 @@ spec = do
    describe "Media blocks" $ do
       it "parses empty blocks" $
          parseCssFromString "@media print{}" `shouldBe`
-            [MediaBlock ["print"] []]
+            [SpecialBlock "media" ["print"] []]
 
       it "parses empty blocks with space" $
          parseCssFromString "@media print { }" `shouldBe`
-            [MediaBlock ["print"] []]
+            [SpecialBlock "media" ["print"] []]
 
       it "parses media blocks containing other empty blocks" $
          parseCssFromString "@media print { foo {} }" `shouldBe`
-            [MediaBlock ["print"] [Block ["foo"] []]]
+            [SpecialBlock "media" ["print"] [Block ["foo"] []]]
 
       it "parses media blocks inside and outside" $
          parseCssFromString "foo {} @media print { foo {} bar {} } bar {}" `shouldBe`
-            [Block ["foo"] [], MediaBlock ["print"] [Block ["foo"] [], Block ["bar"] []], Block ["bar"] []]
+            [Block ["foo"] [], SpecialBlock "media" ["print"] [Block ["foo"] [], Block ["bar"] []], Block ["bar"] []]
 
       it "parses media blocks containing a block with style properties" $
          parseCssFromString "@media print { foo { text-align: center; } }" `shouldBe`
-            [MediaBlock ["print"] [Block ["foo"] [CssProperty ("text-align", [Value "center"])]]]
+            [SpecialBlock "media" ["print"] [Block ["foo"] [CssProperty ("text-align", [Value "center"])]]]
 
       it "parses media blocks containing many blocks with style properties" $
          parseCssFromString "@media print { foo { text-align: center; } bar { text-align: right; } }" `shouldBe`
-            [MediaBlock ["print"] [Block ["foo"] [CssProperty ("text-align", [Value "center"])], Block ["bar"] [CssProperty ("text-align", [Value "right"])]]]
+            [SpecialBlock "media" ["print"] [Block ["foo"] [CssProperty ("text-align", [Value "center"])], Block ["bar"] [CssProperty ("text-align", [Value "right"])]]]
+
+   describe "Keyframes blocks" $ do
+      it "parses empty keyframes block" $
+         parseCssFromString "@keyframes animation{}" `shouldBe`
+            [SpecialBlock "keyframes" ["animation"] []]
+
+      it "parses empty keyframes block with space" $
+         parseCssFromString "@keyframes animation { }" `shouldBe`
+            [SpecialBlock "keyframes" ["animation"] []]
+
+      it "parses keyframes block containing empty block" $
+         parseCssFromString "@keyframes animation { 100% { } }" `shouldBe`
+            [SpecialBlock "keyframes" ["animation"] [Block ["100%"] []]]
+
+      it "parses keyframes block containing empty blocks" $
+         parseCssFromString "@keyframes animation { 0% {} 100% {} }" `shouldBe`
+            [SpecialBlock "keyframes" ["animation"] [Block ["0%"] [], Block ["100%"] []]]
+
+      it "parses keyframes block containing empty blocks with magic string" $
+         parseCssFromString "@keyframes animation { from {} to {} }" `shouldBe`
+            [SpecialBlock "keyframes" ["animation"] [Block ["from"] [], Block ["to"] []]]
+
+      it "parses keyframes block containing blocks" $
+         parseCssFromString "@keyframes animation { 0% { margin-left: 4rem; } 100% { margin-left: 0; } }" `shouldBe`
+            [SpecialBlock "keyframes" ["animation"] [Block ["0%"] [CssProperty ("margin-left", [Value "4rem"])], Block ["100%"] [CssProperty ("margin-left", [Value "0"])]]]
 
    describe "Imports" $ do
       it "parses double quoted import" $

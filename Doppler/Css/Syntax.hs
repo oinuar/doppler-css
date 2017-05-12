@@ -13,7 +13,7 @@ import Language.Haskell.TH.Quote   (QuasiQuoter (..))
 parseCss :: Parser Css
             -- ^ CSS parser.
 parseCss =
-   many parseWhitespace *> (try parseImport <|> parseMediaBlock <|> parseBlock)
+   many parseWhitespace *> (try parseImport <|> try parseSpecialBlock <|> parseBlock)
 
 -- Parser for CSS property.
 parseCssProperty :: Parser CssProperty
@@ -60,16 +60,17 @@ parseImport = do
    _ <- char ';' <* many parseWhitespace
    return $ Import url
 
-parseMediaBlock :: Parser Css
-parseMediaBlock = do
-   _ <- string "@media" <* many1 parseWhitespace
+parseSpecialBlock :: Parser Css
+parseSpecialBlock = do
+   _ <- char '@'
+   name <- (string "media" <|> string "keyframes") <* many1 parseWhitespace
    selector <- parseSelectors <* many parseWhitespace
    blocks <- between (char '{' <* many parseWhitespace) (many parseWhitespace *> char '}') (many parseBlock) <* many parseWhitespace
-   return $ MediaBlock selector blocks
+   return $ SpecialBlock name selector blocks
 
 parseSelectors :: Parser [CssSelector]
 parseSelectors = do
-   lhs <- many1 (letter <|> digit <|> oneOf "-_#.") <* many parseWhitespace
+   lhs <- many1 (letter <|> digit <|> oneOf "-_#.:%()") <* many parseWhitespace
    rhs <- optionMaybe parseSelectors
    skipMany parseWhitespace
    maybe (operator lhs <|> pure [lhs]) (return . (:) lhs . (:) " ") rhs

@@ -14,8 +14,8 @@ data Css =
    -- ^ CSS block that contains style properties.
    | Import String
    -- ^ CSS import.
-   | MediaBlock [CssSelector] [Css]
-   -- ^ CSS media block that contains other definitions.
+   | SpecialBlock String [CssSelector] [Css]
+   -- ^ CSS special block that contains other definitions.
    deriving (Show, Eq)
 
 data CssPropertyValue =
@@ -76,8 +76,8 @@ instance Lift Css where
    lift (Import url) =
       [| Import url |]
 
-   lift (MediaBlock selector blocks) =
-      [| MediaBlock selector blocks |]
+   lift (SpecialBlock name selector blocks) =
+      [| SpecialBlock name selector blocks |]
 
 instance Lift CssProperty where
    lift (CssProperty (key, value)) =
